@@ -4,17 +4,15 @@ import annotation.ServiceCallLog;
 import config.AppConfig;
 import dao.CustomerAccountDAO;
 import dao.TransactionDAO;
-import dbenum.TransactionStatus;
 import dbenum.TransactionType;
 import entity.Account;
-import entity.Balance;
 import entity.Transaction;
 import jakarta.ejb.*;
 import jakarta.inject.Inject;
-import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.SystemException;
 import jakarta.transaction.UserTransaction;
 import service.TransactionService;
+import timer.ScheduledFundTransferTimer;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,6 +35,9 @@ public class TransactionServiceImpl implements TransactionService {
     @Inject
     UserTransaction utx;
 
+    @EJB
+    ScheduledFundTransferTimer sFundTransferTimer;
+
     public boolean interestPayoutCurrentDate(String accountNo) {
 
             // get account
@@ -56,12 +57,15 @@ public class TransactionServiceImpl implements TransactionService {
                 // transaction begin
                 utx.begin();
 
+                // calculated date
+                LocalDate calculatedDate = LocalDate.now();
                 // interest record
-                transactionDAO.addNewInterestRecord(account, interest, LocalDate.now());
+                transactionDAO.addNewInterestRecord(account, interest, calculatedDate);
                 // Update balance records
                 transactionDAO.updateBalance(account, interest, TransactionType.INTEREST);
                 // Record transaction
-                transactionDAO.addTransactionRecord(account, interest, TransactionType.INTEREST);
+                transactionDAO.addCompletedTransactionRecord(account, interest, TransactionType.INTEREST,
+                        String.format("Interest Payout for date : %s", calculatedDate.toString()), null, null);
 
                 utx.commit();
                 return true;
@@ -78,5 +82,41 @@ public class TransactionServiceImpl implements TransactionService {
             }
 
     }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public boolean scheduleFundTransfer(
+            String fromAccNo,
+            String toAccNo,
+            BigDecimal amount,
+            String description,
+            LocalDateTime scheduleTime) {
+
+
+        // make pending transaction records
+        // get accounts
+        Account fromAccount = customerAccountDAO.getAccountByAccNo(fromAccNo);
+        Account toAccount = customerAccountDAO.getAccountByAccNo(toAccNo);
+
+        try {
+            //
+            // transfer out record
+            Transaction fromTX = transactionDAO.addPendingTransactionRecord(
+                    fromAccount, amount, TransactionType.TRANSFER_OUT, description, null, toAccount);
+
+
+            // add scheduled transfer record
+            transactionDAO.addNewScheduledTransactionRecord(fromTX, scheduleTime);
+
+            // start timer
+            sFundTransferTimer.scheduleTimerByTransaction(fromTX.getId(), scheduleTime);
+
+            return true;
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 
 }

@@ -16,7 +16,7 @@ public class ScheduledTransaction {
     @JoinColumn(name = "transaction_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Transaction transaction;
 
-    @Column(name = "scheduledat", nullable = false, insertable = false)
+    @Column(name = "scheduledat", nullable = false)
     private LocalDateTime scheduledAt;
 
     @Column(name = "createdat", nullable = false, insertable = false, updatable = false)
