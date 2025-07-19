@@ -16,6 +16,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 
 import java.security.SecureRandom;
+import java.sql.ResultSet;
 import java.util.List;
 
 @RequestScoped
@@ -143,5 +144,9 @@ public class CustomerAccountDAO {
     public Double getBalanceByAccID(int accID){
         Balance balance = em.find(Balance.class, accID);
         return balance.getBalance().doubleValue();
+    }
+
+    public List<Account> getAccountsByInterestEnabled(){
+        return em.createQuery("SELECT a FROM Account a WHERE a.interestEligible = true", Account.class).getResultList();
     }
 }
