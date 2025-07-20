@@ -12,7 +12,37 @@
         <servlet-name>welcome-page</servlet-name>
         <url-pattern>/</url-pattern>
     </servlet-mapping>
-    
+
+    <!-- Sec roles -->
+    <security-role>
+        <role-name>SYSUSER</role-name>
+    </security-role>
+    <security-role>
+        <role-name>SERVICEUSER</role-name>
+    </security-role>
+
+    <!--  Protected URL -->
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>AdminArea</web-resource-name>
+            <url-pattern>/bank/admin/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>SYSUSER</role-name>
+            <role-name>SERVICEUSER</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+    <!-- Login Config-->
+    <login-config>
+        <auth-method>FORM</auth-method>
+        <realm-name>bank-realm</realm-name>
+        <form-login-config>
+            <form-login-page>/login.jsp</form-login-page>
+            <form-error-page>/login-error.jsp</form-error-page>
+        </form-login-config>
+    </login-config>
+
     <welcome-file-list>
         <welcome-file>welcome-page</welcome-file>
     </welcome-file-list>

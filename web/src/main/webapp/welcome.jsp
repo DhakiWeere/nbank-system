@@ -5,6 +5,7 @@
 </head>
 <body>
     <h1>Welcome to National Bank Digital</h1>
-    <a href="/bank/test-servlet">Test Servlet</a>
+<%--    <a href="/bank/test-servlet">Test Servlet</a>--%>
+    <script src="js/banking_system_script.js"></script>
 </body>
 </html>
