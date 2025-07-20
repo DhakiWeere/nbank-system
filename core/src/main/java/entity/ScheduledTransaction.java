@@ -22,7 +22,6 @@ public class ScheduledTransaction {
     @Column(name = "createdat", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // Getters and Setters
 
     public Integer getTransactionId() {
         return transactionId;
