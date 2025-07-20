@@ -33,6 +33,4 @@ public class InterestTimer {
             transactionService.interestPayoutCurrentDate(account.getAccNo());
         }
     }
-
-
 }

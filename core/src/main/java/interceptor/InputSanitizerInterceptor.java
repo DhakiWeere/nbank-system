@@ -27,7 +27,6 @@ public class InputSanitizerInterceptor {
                 System.out.printf("Sanitized Param : [%s] >>> [%s]",  tempParam, params[i].toString());
             }
         }
-
         ctx.setParameters(params);
         return ctx.proceed();
     }

@@ -7,6 +7,7 @@ import dao.TransactionDAO;
 import dbenum.TransactionType;
 import entity.Account;
 import entity.Transaction;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.ejb.*;
 import jakarta.inject.Inject;
 import jakarta.transaction.SystemException;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 @Stateless
 @ServiceCallLog
 @TransactionManagement(TransactionManagementType.BEAN)
+@RolesAllowed({"SERVICEUSER", "ADMIN"})
 public class TransactionServiceImpl implements TransactionService {
 
     @Inject
@@ -38,51 +40,53 @@ public class TransactionServiceImpl implements TransactionService {
     @EJB
     ScheduledFundTransferTimer sFundTransferTimer;
 
+    @RolesAllowed({"ADMIN", "SYSUSER"})
     public boolean interestPayoutCurrentDate(String accountNo) {
 
-            // get account
-            Account account = customerAccountDAO.getAccountByAccNo(accountNo);
-            // get balance
-            BigDecimal currentBalanceToDate = transactionDAO.getBalance(account);
-            // no balance  || balance <= 0 --> no interest
-            if (currentBalanceToDate == null || currentBalanceToDate.compareTo(BigDecimal.ZERO) <= 0) {
-                return false;
-            }
-            // calculate interest
-            BigDecimal interest = transactionDAO.calculateInterest(
-                    currentBalanceToDate,
-                    appConfig.getANNUAL_INTEREST_RATE());
+        // get account
+        Account account = customerAccountDAO.getAccountByAccNo(accountNo);
+        // get balance
+        BigDecimal currentBalanceToDate = transactionDAO.getBalance(account);
+        // no balance  || balance <= 0 --> no interest
+        if (currentBalanceToDate == null || currentBalanceToDate.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        // calculate interest
+        BigDecimal interest = transactionDAO.calculateInterest(
+                currentBalanceToDate,
+                appConfig.getANNUAL_INTEREST_RATE());
 
+        try {
+            // transaction begin
+            utx.begin();
+
+            // calculated date
+            LocalDate calculatedDate = LocalDate.now();
+            // interest record
+            transactionDAO.addNewInterestRecord(account, interest, calculatedDate);
+            // Update balance records
+            transactionDAO.updateBalance(account, interest, TransactionType.INTEREST);
+            // Record transaction
+            transactionDAO.addCompletedTransactionRecord(account, interest, TransactionType.INTEREST,
+                    String.format("Interest Payout for date : %s", calculatedDate.toString()), null, null);
+
+            utx.commit();
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
             try {
-                // transaction begin
-                utx.begin();
-
-                // calculated date
-                LocalDate calculatedDate = LocalDate.now();
-                // interest record
-                transactionDAO.addNewInterestRecord(account, interest, calculatedDate);
-                // Update balance records
-                transactionDAO.updateBalance(account, interest, TransactionType.INTEREST);
-                // Record transaction
-                transactionDAO.addCompletedTransactionRecord(account, interest, TransactionType.INTEREST,
-                        String.format("Interest Payout for date : %s", calculatedDate.toString()), null, null);
-
-                utx.commit();
-                return true;
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                try {
-                    utx.rollback();
-                } catch (SystemException ex) {
-                    throw new RuntimeException(ex);
-                }
-                return false;
-
+                utx.rollback();
+            } catch (SystemException ex) {
+                throw new RuntimeException(ex);
             }
+            return false;
+
+        }
     }
 
     @Override
+    @RolesAllowed("SERVICEUSER")
     public boolean scheduleFundTransfer(
             String fromAccNo,
             String toAccNo,
@@ -112,7 +116,11 @@ public class TransactionServiceImpl implements TransactionService {
             utx.commit();
             return true;
 
-        }catch (Exception e){
+        } catch (EJBAccessException ejbae) {
+            System.out.println(ejbae.getLocalizedMessage());
+            return false;
+
+        } catch (Exception e) {
             e.printStackTrace();
             try {
                 utx.rollback();

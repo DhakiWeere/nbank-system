@@ -6,6 +6,7 @@ import entity.Account;
 import entity.Balance;
 import entity.Customer;
 import entity.LoginCredentials;
+import exception.CustomerExistsException;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -68,9 +69,11 @@ public class CustomerAccountDAO {
         return em.createQuery(query).getSingleResult();
     }
 
-    public Customer addCustomer(String nic, String email, String fullName, String phone, String address){
+    public Customer addCustomer(String nic, String email, String fullName, String phone, String address)
+            throws CustomerExistsException {
+
         if(getCustomerByNIC(nic) != null){
-            return null;
+            throw new CustomerExistsException();
 
         } else {
             Customer newCustomer = new Customer();

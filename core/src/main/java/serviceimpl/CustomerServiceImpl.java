@@ -22,7 +22,6 @@ import java.util.List;
 
 @Stateless
 @TransactionManagement(TransactionManagementType.CONTAINER)
-@TransactionAttribute(TransactionAttributeType.REQUIRED)
 @ServiceCallLog
 public class CustomerServiceImpl implements CustomerService {
 
@@ -32,6 +31,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Inject
     TransactionDAO transactionDAO;
 
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public String getCustomerNameByNIC(String nic) {
         System.out.println("getCustomerNameByNIC");
         Customer customer = customerAccountDAO.getCustomerByNIC(nic);
@@ -55,6 +55,7 @@ public class CustomerServiceImpl implements CustomerService {
         }
     }
 
+
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     @SanitizeInput
@@ -68,7 +69,9 @@ public class CustomerServiceImpl implements CustomerService {
         return false;
     }
 
+
     @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public List<AccountDTO> getAccountIdsByCustomerID(int customerID) {
         Customer customer = customerAccountDAO.getCustomerById(customerID);
         List<Account> accList = customerAccountDAO.getAccountsByCustomer(customer);
