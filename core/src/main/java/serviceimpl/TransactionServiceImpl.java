@@ -19,8 +19,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Stateless
-@TransactionManagement(TransactionManagementType.BEAN)
 @ServiceCallLog
+@TransactionManagement(TransactionManagementType.BEAN)
 public class TransactionServiceImpl implements TransactionService {
 
     @Inject
@@ -80,17 +80,16 @@ public class TransactionServiceImpl implements TransactionService {
                 return false;
 
             }
-
     }
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public boolean scheduleFundTransfer(
             String fromAccNo,
             String toAccNo,
             BigDecimal amount,
             String description,
-            LocalDateTime scheduleTime) {
+            LocalDateTime scheduleTime
+    ) {
 
 
         // make pending transaction records
@@ -99,21 +98,27 @@ public class TransactionServiceImpl implements TransactionService {
         Account toAccount = customerAccountDAO.getAccountByAccNo(toAccNo);
 
         try {
-            //
+            // transaction
+            utx.begin();
+
             // transfer out record
             Transaction fromTX = transactionDAO.addPendingTransactionRecord(
                     fromAccount, amount, TransactionType.TRANSFER_OUT, description, null, toAccount);
-
-
             // add scheduled transfer record
             transactionDAO.addNewScheduledTransactionRecord(fromTX, scheduleTime);
-
             // start timer
             sFundTransferTimer.scheduleTimerByTransaction(fromTX.getId(), scheduleTime);
 
+            utx.commit();
             return true;
+
         }catch (Exception e){
             e.printStackTrace();
+            try {
+                utx.rollback();
+            } catch (SystemException ex) {
+                throw new RuntimeException(ex);
+            }
             return false;
         }
     }

@@ -22,7 +22,7 @@ public class InterestTimer {
     @EJB
     TransactionService transactionService;
 
-    @Schedule(hour = "2", minute = "0", second = "0", persistent = false)
+    @Schedule(hour = "2", minute = "0", second = "0", persistent = true)
     @ServiceCallLog
     public void executeDailyInterestPayout() {
         // get all interest-eligible accounts

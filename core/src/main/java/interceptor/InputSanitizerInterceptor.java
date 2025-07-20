@@ -23,7 +23,7 @@ public class InputSanitizerInterceptor {
 
                 String tempParam = (String) params[i];
                 params[i] = sanitizeString((String) params[i]);
-                //log
+                // log
                 System.out.printf("Sanitized Param : [%s] >>> [%s]",  tempParam, params[i].toString());
             }
         }
